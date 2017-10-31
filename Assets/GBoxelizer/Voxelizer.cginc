@@ -61,19 +61,13 @@ void Geometry(
     float3 center = (vp0 + vp1 + vp2) / 3;
 
     // Deformation parameter
-    float param = saturate(0.5 +
-        snoise(center * 2.1 + time) * 0.3 +
-        sin(center.y * 0.8 + time)
-    );
-
-    // Triangle size
-    float tri = shrink ? 0 : 10;
+    float param = saturate(0.5 + sin(center.y * 0.4 + time * 0.6));
 
     // Triangle vertices
-    float tparam = saturate(param * 10);
-    float3 tp0 = lerp(vp0, center + (vp0 - center) * tri, tparam);
-    float3 tp1 = lerp(vp1, center + (vp1 - center) * tri, tparam);
-    float3 tp2 = lerp(vp2, center + (vp2 - center) * tri, tparam);
+    float tparam = shrink ? saturate(1 - param * 20) : (1 + param * 60);
+    float3 tp0 = lerp(center, vp0, tparam);
+    float3 tp1 = lerp(center, vp1, tparam);
+    float3 tp2 = lerp(center, vp2, tparam);
 
     // Cube size
     float size = (shrink ? 0 : 0.05) * saturate(1 + pnoise.w * 2);
@@ -82,65 +76,68 @@ void Geometry(
     float3 cube = center + pnoise.xyz * 0.02;
 
     // Cube vertices
-    float3 cp0 = cube + float3(-1, -1, -1) * size;
-    float3 cp1 = cube + float3(+1, -1, -1) * size;
-    float3 cp2 = cube + float3(-1, +1, -1) * size;
-    float3 cp3 = cube + float3(+1, +1, -1) * size;
-    float3 cp4 = cube + float3(-1, -1, +1) * size;
-    float3 cp5 = cube + float3(+1, -1, +1) * size;
-    float3 cp6 = cube + float3(-1, +1, +1) * size;
-    float3 cp7 = cube + float3(+1, +1, +1) * size;
+    float cparam = saturate(param * 4 - 3);
+    float3 csize = float3(1 - cparam, 1 + cparam * 4, 1 - cparam) * size;
+    float3 cp0 = cube + float3(-1, -1, -1) * csize;
+    float3 cp1 = cube + float3(+1, -1, -1) * csize;
+    float3 cp2 = cube + float3(-1, +1, -1) * csize;
+    float3 cp3 = cube + float3(+1, +1, -1) * csize;
+    float3 cp4 = cube + float3(-1, -1, +1) * csize;
+    float3 cp5 = cube + float3(+1, -1, +1) * csize;
+    float3 cp6 = cube + float3(-1, +1, +1) * csize;
+    float3 cp7 = cube + float3(+1, +1, +1) * csize;
 
     // Lerping vertices
-    float4 op0 = UnityWorldToClipPos(float4(lerp(tp0, cp0, param), 1));
-    float4 op1 = UnityWorldToClipPos(float4(lerp(tp0, cp1, param), 1));
-    float4 op2 = UnityWorldToClipPos(float4(lerp(tp0, cp2, param), 1));
-    float4 op3 = UnityWorldToClipPos(float4(lerp(tp1, cp3, param), 1));
-    float4 op4 = UnityWorldToClipPos(float4(lerp(tp1, cp4, param), 1));
-    float4 op5 = UnityWorldToClipPos(float4(lerp(tp1, cp5, param), 1));
-    float4 op6 = UnityWorldToClipPos(float4(lerp(tp2, cp6, param), 1));
-    float4 op7 = UnityWorldToClipPos(float4(lerp(tp2, cp7, param), 1));
+    float oparam = saturate(param * 2 - 0.5);
+    float4 op0 = UnityWorldToClipPos(float4(lerp(tp0, cp0, oparam), 1));
+    float4 op1 = UnityWorldToClipPos(float4(lerp(tp0, cp1, oparam), 1));
+    float4 op2 = UnityWorldToClipPos(float4(lerp(tp0, cp2, oparam), 1));
+    float4 op3 = UnityWorldToClipPos(float4(lerp(tp1, cp3, oparam), 1));
+    float4 op4 = UnityWorldToClipPos(float4(lerp(tp1, cp4, oparam), 1));
+    float4 op5 = UnityWorldToClipPos(float4(lerp(tp1, cp5, oparam), 1));
+    float4 op6 = UnityWorldToClipPos(float4(lerp(tp2, cp6, oparam), 1));
+    float4 op7 = UnityWorldToClipPos(float4(lerp(tp2, cp7, oparam), 1));
 
     half3 color = Hue2RGB(Random(pid * 6));
-    outStream.Append(SetGeoOut(op2, n0, color, param));
-    outStream.Append(SetGeoOut(op0, n0, color, param));
-    outStream.Append(SetGeoOut(op6, n2, color, param));
-    outStream.Append(SetGeoOut(op4, n1, color, param));
+    outStream.Append(SetGeoOut(op2, n0, color, oparam));
+    outStream.Append(SetGeoOut(op0, n0, color, oparam));
+    outStream.Append(SetGeoOut(op6, n2, color, oparam));
+    outStream.Append(SetGeoOut(op4, n1, color, oparam));
     outStream.RestartStrip();
 
     color = Hue2RGB(Random(pid * 6 + 1));
-    outStream.Append(SetGeoOut(op1, n0, color, param));
-    outStream.Append(SetGeoOut(op3, n1, color, param));
-    outStream.Append(SetGeoOut(op5, n1, color, param));
-    outStream.Append(SetGeoOut(op7, n2, color, param));
+    outStream.Append(SetGeoOut(op1, n0, color, oparam));
+    outStream.Append(SetGeoOut(op3, n1, color, oparam));
+    outStream.Append(SetGeoOut(op5, n1, color, oparam));
+    outStream.Append(SetGeoOut(op7, n2, color, oparam));
     outStream.RestartStrip();
 
     color = Hue2RGB(Random(pid * 6 + 2));
-    outStream.Append(SetGeoOut(op0, n0, color, param));
-    outStream.Append(SetGeoOut(op1, n0, color, param));
-    outStream.Append(SetGeoOut(op4, n1, color, param));
-    outStream.Append(SetGeoOut(op5, n1, color, param));
+    outStream.Append(SetGeoOut(op0, n0, color, oparam));
+    outStream.Append(SetGeoOut(op1, n0, color, oparam));
+    outStream.Append(SetGeoOut(op4, n1, color, oparam));
+    outStream.Append(SetGeoOut(op5, n1, color, oparam));
     outStream.RestartStrip();
 
     color = Hue2RGB(Random(pid * 6 + 3));
-    outStream.Append(SetGeoOut(op3, n1, color, param));
-    outStream.Append(SetGeoOut(op2, n0, color, param));
-    outStream.Append(SetGeoOut(op7, n2, color, param));
-    outStream.Append(SetGeoOut(op6, n2, color, param));
+    outStream.Append(SetGeoOut(op3, n1, color, oparam));
+    outStream.Append(SetGeoOut(op2, n0, color, oparam));
+    outStream.Append(SetGeoOut(op7, n2, color, oparam));
+    outStream.Append(SetGeoOut(op6, n2, color, oparam));
     outStream.RestartStrip();
 
     color = Hue2RGB(Random(pid * 6 + 4));
-    outStream.Append(SetGeoOut(op1, n0, color, param));
-    outStream.Append(SetGeoOut(op0, n0, color, param));
-    outStream.Append(SetGeoOut(op3, n1, color, param));
-    outStream.Append(SetGeoOut(op2, n1, color, param));
+    outStream.Append(SetGeoOut(op1, n0, color, oparam));
+    outStream.Append(SetGeoOut(op0, n0, color, oparam));
+    outStream.Append(SetGeoOut(op3, n1, color, oparam));
+    outStream.Append(SetGeoOut(op2, n1, color, oparam));
     outStream.RestartStrip();
 
     color = Hue2RGB(Random(pid * 6 + 5));
-    outStream.Append(SetGeoOut(op4, n1, color, param));
-    outStream.Append(SetGeoOut(op5, n1, color, param));
-    outStream.Append(SetGeoOut(op6, n2, color, param));
-    outStream.Append(SetGeoOut(op7, n2, color, param));
+    outStream.Append(SetGeoOut(op4, n1, color, oparam));
+    outStream.Append(SetGeoOut(op5, n1, color, oparam));
+    outStream.Append(SetGeoOut(op6, n2, color, oparam));
+    outStream.Append(SetGeoOut(op7, n2, color, oparam));
     outStream.RestartStrip();
 }
 
