@@ -1,0 +1,4 @@
+[submodule "Assets/PostProcessing"]
+	path = Assets/PostProcessing
+	url = https://github.com/keijiro/PostProcessing.git
+    branch = local-changes
