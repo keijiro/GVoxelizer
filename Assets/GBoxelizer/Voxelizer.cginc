@@ -1,3 +1,6 @@
+// Geometry voxelizer effect
+// https://github.com/keijiro/GVoxelizer
+
 #include "Common.cginc"
 #include "SimplexNoise3D.hlsl"
 
@@ -40,23 +43,22 @@ Varyings SetGeoOut(float4 position, half3 normal, half3 color, half param)
     return o;
 }
 
-Varyings SetTriangleGeoOut(float3 center, float3 vert, float param, float3 normal)
+Varyings SetTriangleGeoOut(float3 pos, float3 normal)
 {
     Varyings o;
-    o.position = UnityWorldToClipPos(float4(lerp(center, vert, param), 1));
+    o.position = UnityWorldToClipPos(float4(pos, 1));
     o.color = (normal + 1) / 2;
     return o;
 }
 
 [maxvertexcount(24)]
 void Geometry(
-    triangle Attributes input[3],
-    uint pid : SV_PrimitiveID,
+    triangle Attributes input[3], uint pid : SV_PrimitiveID,
     inout TriangleStream<Varyings> outStream
 )
 {
-    // Random number
-    float rnd = Random(pid);
+    // Random number seed
+    uint seed = pid * 877;
 
     // Input vertices
     float3 p0 = input[0].position.xyz;
@@ -73,11 +75,10 @@ void Geometry(
     float param = dot(_EffectVector.xyz, center) - _EffectVector.w;
     param = saturate(1 - param);
 
-    // Cube or triangle?
-    if (rnd < 0.05)
+    // Choose cube/triangle randomly.
+    if (Random(seed) < 0.05)
     {
-        // Recalculate the random number.
-        rnd = Random(pid + 100000);
+        float rnd = Random(seed + 1);
 
         // Simplex noise & gradients
         float4 snoise = snoise_grad(float3(rnd * 2378.34, param * 0.8, 0));
@@ -157,40 +158,24 @@ void Geometry(
     }
     else
     {
-        // Recalculate the random number.
-        rnd = Random(pid + 100000);
+        float ss_param = smoothstep(0, 1, param);
 
-        // Simplex noise & gradients
-        float4 snoise = snoise_grad(float3(rnd * 2378.34, 0, 0));
+        // Rotation
+        float3 rot_angles = (RandomVector01(seed + 1) - 0.5) * 100;
+        float3x3 rot_m = Euler3x3(rot_angles * ss_param);
 
-        // Triangle animation
+        // Transform
+        float3 move = RandomVector(seed + 1) * ss_param * 0.5;
         float scale = 1 - param;
-        float3 t_p0 = lerp(center, p0, scale);
-        float3 t_p1 = lerp(center, p1, scale);
-        float3 t_p2 = lerp(center, p2, scale);
+        float3 t_p0 = mul(rot_m, p0 - center) * scale + center + move;
+        float3 t_p1 = mul(rot_m, p1 - center) * scale + center + move;
+        float3 t_p2 = mul(rot_m, p2 - center) * scale + center + move;
 
-        //float3 move = snoise.xyz * (1 - pow(1 - param, 2)) * 0.2;
-        float3 move = normalize(snoise.xyz);
-        move *= Random(pid + 200000);
-        move *= smoothstep(0, 1, param) * 1.2;
-        t_p0 += move;
-        t_p1 += move;
-        t_p2 += move;
-
-        outStream.Append(SetTriangleGeoOut(t_p0, t_p0, 0, n0));
-        outStream.Append(SetTriangleGeoOut(t_p1, t_p1, 0, n1));
-        outStream.Append(SetTriangleGeoOut(t_p2, t_p2, 0, n2));
+        // Vertex outputs
+        outStream.Append(SetTriangleGeoOut(t_p0, n0));
+        outStream.Append(SetTriangleGeoOut(t_p1, n1));
+        outStream.Append(SetTriangleGeoOut(t_p2, n2));
         outStream.RestartStrip();
-        /*
-        float t_param = saturate(1 - param * 40);
-        if (t_param > 0)
-        {
-            outStream.Append(SetTriangleGeoOut(center, p0, t_param, n0));
-            outStream.Append(SetTriangleGeoOut(center, p1, t_param, n1));
-            outStream.Append(SetTriangleGeoOut(center, p2, t_param, n2));
-            outStream.RestartStrip();
-        }
-        */
     }
 }
 

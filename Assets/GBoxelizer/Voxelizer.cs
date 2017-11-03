@@ -3,7 +3,7 @@ using UnityEngine.Timeline;
 using System.Collections.Generic;
 
 [ExecuteInEditMode]
-class VoxelController : MonoBehaviour
+class Voxelizer : MonoBehaviour
 {
     [SerializeField] Renderer[] _linkedRenderers;
 
@@ -27,7 +27,7 @@ class VoxelController : MonoBehaviour
     {
         if (_sheet == null) _sheet = new MaterialPropertyBlock();
 
-        var fwd = transform.forward;
+        var fwd = transform.forward / transform.localScale.z;
         var dist = Vector3.Dot(fwd, transform.position);
         var vector = new Vector4(fwd.x, fwd.y, fwd.z, dist);
 
