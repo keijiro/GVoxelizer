@@ -20,7 +20,7 @@ float Random(uint seed)
 // Hue value -> RGB color
 half3 Hue2RGB(half h)
 {
-    h = frac(saturate(h)) * 6 - 2;
+    h = frac(h) * 6 - 2;
     half3 rgb = saturate(half3(abs(h - 1) - 1, 2 - abs(h), 2 - abs(h - 2)));
     return rgb;
 }
