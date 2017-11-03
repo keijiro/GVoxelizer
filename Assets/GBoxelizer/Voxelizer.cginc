@@ -158,7 +158,31 @@ void Geometry(
     }
     else
     {
+        // Recalculate the random number.
+        rnd = Random(pid + 100000);
+
+        // Simplex noise & gradients
+        float4 snoise = snoise_grad(float3(rnd * 2378.34, 0, 0));
+
         // Triangle animation
+        float scale = 1 - param;
+        float3 t_p0 = lerp(center, p0, scale);
+        float3 t_p1 = lerp(center, p1, scale);
+        float3 t_p2 = lerp(center, p2, scale);
+
+        //float3 move = snoise.xyz * (1 - pow(1 - param, 2)) * 0.2;
+        float3 move = normalize(snoise.xyz);
+        move *= Random(pid + 200000);
+        move *= smoothstep(0, 1, param) * 1.2;
+        t_p0 += move;
+        t_p1 += move;
+        t_p2 += move;
+
+        outStream.Append(SetTriangleGeoOut(t_p0, t_p0, 0, n0));
+        outStream.Append(SetTriangleGeoOut(t_p1, t_p1, 0, n1));
+        outStream.Append(SetTriangleGeoOut(t_p2, t_p2, 0, n2));
+        outStream.RestartStrip();
+        /*
         float t_param = saturate(1 - param * 40);
         if (t_param > 0)
         {
@@ -167,6 +191,7 @@ void Geometry(
             outStream.Append(SetTriangleGeoOut(center, p2, t_param, n2));
             outStream.RestartStrip();
         }
+        */
     }
 }
 
