@@ -38,7 +38,7 @@ RenderSettings:
   m_ReflectionIntensity: 1
   m_CustomReflection: {fileID: 0}
   m_Sun: {fileID: 0}
-  m_IndirectSpecularColor: {r: 0.37311953, g: 0.38074014, b: 0.3587274, a: 1}
+  m_IndirectSpecularColor: {r: 0.12731749, g: 0.13414757, b: 0.1210787, a: 1}
 --- !u!157 &3
 LightmapSettings:
   m_ObjectHideFlags: 0
@@ -204,6 +204,8 @@ GameObject:
   - component: {fileID: 933465323}
   - component: {fileID: 933465322}
   - component: {fileID: 933465326}
+  - component: {fileID: 933465328}
+  - component: {fileID: 933465329}
   - component: {fileID: 933465327}
   m_Layer: 0
   m_Name: Main Camera
@@ -251,7 +253,7 @@ Camera:
   m_CullingMask:
     serializedVersion: 2
     m_Bits: 4294967295
-  m_RenderingPath: -1
+  m_RenderingPath: 1
   m_TargetTexture: {fileID: 0}
   m_TargetDisplay: 0
   m_TargetEye: 3
@@ -286,10 +288,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8bf1549b18899e840a165a1f6c0c96aa, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _background: {r: 0, g: 0, b: 0, a: 1}
-  _foreground: {r: 1, g: 1, b: 1, a: 1}
-  _lowerThreshold: 0.185
-  _upperThreshold: 0.261
+  _background: {r: 1, g: 1, b: 1, a: 1}
+  _foreground: {r: 0, g: 0, b: 0, a: 1}
+  _lowerThreshold: 0.18
+  _upperThreshold: 0.26
   _shader: {fileID: 4800000, guid: c635ecf36800ad340b513d8aa964f5bc, type: 3}
 --- !u!114 &933465327
 MonoBehaviour:
@@ -297,7 +299,7 @@ MonoBehaviour:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 933465321}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 948f4100a11a5c24981795d21301da5c, type: 3}
   m_Name: 
@@ -346,6 +348,51 @@ MonoBehaviour:
   m_BeforeTransparentBundles: []
   m_BeforeStackBundles: []
   m_AfterStackBundles: []
+--- !u!114 &933465328
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 933465321}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b200ceda39a40af43bbb16a879f0791f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _noiseFilterTolerance: 0
+  _blurTolerance: -4.6
+  _upsampleTolerance: -12
+  _thicknessModifier: 1
+  _intensity: 1.65
+  _debug: 0
+  _ambientOnly: 1
+  _downsample1Compute: {fileID: 7200000, guid: 659dc93a3764e164e8dafb2061ff317b, type: 3}
+  _downsample2Compute: {fileID: 7200000, guid: dc4dd2f3a1157884e95a081b25b5731d, type: 3}
+  _renderCompute: {fileID: 7200000, guid: e49d5d8e57b0515469bb1ef4bf07b8dd, type: 3}
+  _upsampleCompute: {fileID: 7200000, guid: 2c3e5f47f9b262047ae010f239705186, type: 3}
+  _blitShader: {fileID: 4800000, guid: 532f9473ecfa16148a1ecdb3b72a44e8, type: 3}
+--- !u!114 &933465329
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 933465321}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 801e272fe799a4b1285b38cce9afa88d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _ditherMatrix: 2
+  _ditherScale: 1
+  _color0: {r: 0, g: 0, b: 0, a: 1}
+  _color1: {r: 1, g: 1, b: 1, a: 1}
+  _blendMode: 0
+  _blendFactor: 1
+  _shader: {fileID: 4800000, guid: 5374979fad08f417c8ce8360cbdfc4fc, type: 3}
+  _ditherTexture2x2: {fileID: 2800000, guid: 154fd938bd1674daa81008e8865fc71c, type: 3}
+  _ditherTexture3x3: {fileID: 2800000, guid: adbc8c1068bb14e46aff2da5b5a56ade, type: 3}
+  _ditherTexture4x4: {fileID: 2800000, guid: dfd8142a3912e4e56b4b38d16a80fb2b, type: 3}
+  _ditherTexture8x8: {fileID: 2800000, guid: d971e1109fb85431bbf91b6abe7be3e8, type: 3}
 --- !u!1 &1229532496
 GameObject:
   m_ObjectHideFlags: 0
@@ -357,7 +404,7 @@ GameObject:
   - component: {fileID: 1229532498}
   - component: {fileID: 1229532497}
   m_Layer: 0
-  m_Name: Plane
+  m_Name: Floor
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
