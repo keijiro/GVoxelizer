@@ -1,7 +1,7 @@
 #include "Common.cginc"
 #include "SimplexNoise3D.hlsl"
 
-float _Progress;
+float4 _EffectVector;
 
 // Vertex input attributes
 struct Attributes
@@ -55,8 +55,6 @@ void Geometry(
     inout TriangleStream<Varyings> outStream
 )
 {
-    float time = _Progress;
-
     // Random number
     float rnd = Random(pid);
 
@@ -72,7 +70,8 @@ void Geometry(
     float3 center = (p0 + p1 + p2) / 3;
 
     // Deformation parameter
-    float param = saturate(0.5 + sin(center.y * 0.4 + time * 0.6));
+    float param = dot(_EffectVector.xyz, center) - _EffectVector.w;
+    param = saturate(1 - param);
 
     // Cube or triangle?
     if (rnd < 0.05)
@@ -81,7 +80,7 @@ void Geometry(
         rnd = Random(pid + 100000);
 
         // Simplex noise & gradients
-        float4 snoise = snoise_grad(float3(rnd * 2378.34, time * 0.8, 0));
+        float4 snoise = snoise_grad(float3(rnd * 2378.34, param * 0.8, 0));
 
         // Triangle animation
         float t_anim = 1 + param * 60;
