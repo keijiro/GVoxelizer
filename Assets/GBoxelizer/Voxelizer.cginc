@@ -1,7 +1,7 @@
 #include "Common.cginc"
 #include "SimplexNoise3D.hlsl"
 
-float _Voxelize;
+float _Progress;
 
 // Vertex input attributes
 struct Attributes
@@ -55,7 +55,7 @@ void Geometry(
     inout TriangleStream<Varyings> outStream
 )
 {
-    float time = _Time.y;
+    float time = _Progress;
 
     // Random number
     float rnd = Random(pid);
