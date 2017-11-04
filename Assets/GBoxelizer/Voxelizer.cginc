@@ -2,8 +2,23 @@
 // https://github.com/keijiro/GVoxelizer
 
 #include "Common.cginc"
+#include "UnityGBuffer.cginc"
 #include "SimplexNoise3D.hlsl"
 
+// Base properties
+half4 _Color;
+half3 _SpecColor;
+half _Glossiness;
+
+// Effect properties
+half4 _Color2;
+half3 _SpecColor2;
+half _Glossiness2;
+
+// Edge properties
+half3 _EdgeColor;
+
+// Dynamic properties
 float4 _EffectVector;
 
 // Vertex input attributes
@@ -17,7 +32,13 @@ struct Attributes
 struct Varyings
 {
     float4 position : SV_POSITION;
-    float4 texcoord : TEXCOORD;
+    float3 normal: NORMAL;
+
+    // Edge parameters: barycentric (xyz), emission (w)
+    float4 edge : TEXCOORD0;
+
+    // Material options: channel (x)
+    float option : TEXCOORD1;
 };
 
 // Vertex stage
@@ -35,19 +56,23 @@ float4 CubePoint(float3 v_tri, float3 pos, float3 v_cube, float3 size, float par
     return UnityWorldToClipPos(float4(p, 1));
 }
 
-Varyings SetGeoOut(float4 pos, float3 bary, float cube)
+Varyings SetGeoOut(float4 pos, half3 normal, float3 bary, float cube)
 {
     Varyings o;
     o.position = pos;
-    o.texcoord = float4(bary, cube);
+    o.normal = normal;
+    o.edge = float4(bary, cube);
+    o.option = 0;
     return o;
 }
 
-Varyings SetGeoOut2(float4 pos, float3 bary1, float2 bary2, float cube)
+Varyings SetGeoOut2(float4 pos, half3 n0, half3 n1, float3 bary1, float2 bary2, float cube, float wire)
 {
     Varyings o;
     o.position = pos;
-    o.texcoord = float4(lerp(bary1, float3(bary2, 0.5), cube), cube);
+    o.normal = normalize(lerp(n0, n1, cube));
+    o.edge = float4(lerp(bary1, float3(bary2, 0.5), cube), wire);
+    o.option = 1;
     return o;
 }
 
@@ -75,7 +100,16 @@ void Geometry(
     float param = 1 - dot(_EffectVector.xyz, center) + _EffectVector.w;
 
     // Draw nothing at the end of deformation.
-    if (param < 0 || param >= 1) return;
+    if (param >= 1) return;
+
+    if (param < 0)
+    {
+        outStream.Append(SetGeoOut(UnityWorldToClipPos(float4(p0, 1)), n0, 0.5, 0));
+        outStream.Append(SetGeoOut(UnityWorldToClipPos(float4(p1, 1)), n1, 0.5, 0));
+        outStream.Append(SetGeoOut(UnityWorldToClipPos(float4(p2, 1)), n2, 0.5, 0));
+        outStream.RestartStrip();
+        return;
+    }
 
     // Choose cube/triangle randomly.
     if (Random(seed) < 0.05)
@@ -104,6 +138,7 @@ void Geometry(
 
         // Vertices (with triangle -> cube defromation)
         float c_param = smoothstep(0.25, 0.5, param);
+
         float4 c_p0 = CubePoint(t_p0, c_p, float3(-1, -1, -1), c_size, c_param);
         float4 c_p1 = CubePoint(t_p0, c_p, float3(+1, -1, -1), c_size, c_param);
         float4 c_p2 = CubePoint(t_p0, c_p, float3(-1, +1, -1), c_size, c_param);
@@ -114,40 +149,47 @@ void Geometry(
         float4 c_p7 = CubePoint(t_p2, c_p, float3(+1, +1, +1), c_size, c_param);
 
         // Output the vertices
-        outStream.Append(SetGeoOut2(c_p2, float3(0, 0, 1), float2(0, 0), c_param));
-        outStream.Append(SetGeoOut2(c_p0, float3(1, 0, 0), float2(1, 0), c_param));
-        outStream.Append(SetGeoOut2(c_p6, float3(0, 1, 0), float2(0, 1), c_param));
-        outStream.Append(SetGeoOut2(c_p4, float3(1, 0, 0), float2(1, 1), c_param));
+        float wire = saturate(param * 5);
+        float3 c_n = float3(-1, 0, 0);
+        outStream.Append(SetGeoOut2(c_p2, n0, c_n, float3(0, 0, 1), float2(0, 0), c_param, wire));
+        outStream.Append(SetGeoOut2(c_p0, n0, c_n, float3(1, 0, 0), float2(1, 0), c_param, wire));
+        outStream.Append(SetGeoOut2(c_p6, n2, c_n, float3(0, 1, 0), float2(0, 1), c_param, wire));
+        outStream.Append(SetGeoOut2(c_p4, n1, c_n, float3(1, 0, 0), float2(1, 1), c_param, wire));
         outStream.RestartStrip();
 
-        outStream.Append(SetGeoOut2(c_p1, float3(0, 0, 1), float2(0, 0), c_param));
-        outStream.Append(SetGeoOut2(c_p3, float3(1, 0, 0), float2(1, 0), c_param));
-        outStream.Append(SetGeoOut2(c_p5, float3(0, 1, 0), float2(0, 1), c_param));
-        outStream.Append(SetGeoOut2(c_p7, float3(1, 0, 0), float2(1, 1), c_param));
+        c_n = float3(1, 0, 0);
+        outStream.Append(SetGeoOut2(c_p1, n0, c_n, float3(0, 0, 1), float2(0, 0), c_param, wire));
+        outStream.Append(SetGeoOut2(c_p3, n1, c_n, float3(1, 0, 0), float2(1, 0), c_param, wire));
+        outStream.Append(SetGeoOut2(c_p5, n1, c_n, float3(0, 1, 0), float2(0, 1), c_param, wire));
+        outStream.Append(SetGeoOut2(c_p7, n2, c_n, float3(1, 0, 0), float2(1, 1), c_param, wire));
         outStream.RestartStrip();
 
-        outStream.Append(SetGeoOut2(c_p0, float3(0, 0, 1), float2(0, 0), c_param));
-        outStream.Append(SetGeoOut2(c_p1, float3(1, 0, 0), float2(1, 0), c_param));
-        outStream.Append(SetGeoOut2(c_p4, float3(0, 1, 0), float2(0, 1), c_param));
-        outStream.Append(SetGeoOut2(c_p5, float3(1, 0, 0), float2(1, 1), c_param));
+        c_n = float3(0, -1, 0);
+        outStream.Append(SetGeoOut2(c_p0, n0, c_n, float3(0, 0, 1), float2(0, 0), c_param, wire));
+        outStream.Append(SetGeoOut2(c_p1, n0, c_n, float3(1, 0, 0), float2(1, 0), c_param, wire));
+        outStream.Append(SetGeoOut2(c_p4, n1, c_n, float3(0, 1, 0), float2(0, 1), c_param, wire));
+        outStream.Append(SetGeoOut2(c_p5, n1, c_n, float3(1, 0, 0), float2(1, 1), c_param, wire));
         outStream.RestartStrip();
 
-        outStream.Append(SetGeoOut2(c_p3, float3(0, 0, 1), float2(0, 0), c_param));
-        outStream.Append(SetGeoOut2(c_p2, float3(1, 0, 0), float2(1, 0), c_param));
-        outStream.Append(SetGeoOut2(c_p7, float3(0, 1, 0), float2(0, 1), c_param));
-        outStream.Append(SetGeoOut2(c_p6, float3(1, 0, 0), float2(1, 1), c_param));
+        c_n = float3(0, 1, 0);
+        outStream.Append(SetGeoOut2(c_p3, n1, c_n, float3(0, 0, 1), float2(0, 0), c_param, wire));
+        outStream.Append(SetGeoOut2(c_p2, n0, c_n, float3(1, 0, 0), float2(1, 0), c_param, wire));
+        outStream.Append(SetGeoOut2(c_p7, n2, c_n, float3(0, 1, 0), float2(0, 1), c_param, wire));
+        outStream.Append(SetGeoOut2(c_p6, n2, c_n, float3(1, 0, 0), float2(1, 1), c_param, wire));
         outStream.RestartStrip();
 
-        outStream.Append(SetGeoOut2(c_p1, float3(0, 0, 1), float2(0, 0), c_param));
-        outStream.Append(SetGeoOut2(c_p0, float3(1, 0, 0), float2(1, 0), c_param));
-        outStream.Append(SetGeoOut2(c_p3, float3(0, 1, 0), float2(0, 1), c_param));
-        outStream.Append(SetGeoOut2(c_p2, float3(1, 0, 0), float2(1, 1), c_param));
+        c_n = float3(0, 0, -1);
+        outStream.Append(SetGeoOut2(c_p1, n0, c_n, float3(0, 0, 1), float2(0, 0), c_param, wire));
+        outStream.Append(SetGeoOut2(c_p0, n0, c_n, float3(1, 0, 0), float2(1, 0), c_param, wire));
+        outStream.Append(SetGeoOut2(c_p3, n1, c_n, float3(0, 1, 0), float2(0, 1), c_param, wire));
+        outStream.Append(SetGeoOut2(c_p2, n0, c_n, float3(1, 0, 0), float2(1, 1), c_param, wire));
         outStream.RestartStrip();
 
-        outStream.Append(SetGeoOut2(c_p4, float3(0, 0, 1), float2(0, 0), c_param));
-        outStream.Append(SetGeoOut2(c_p5, float3(1, 0, 0), float2(1, 0), c_param));
-        outStream.Append(SetGeoOut2(c_p6, float3(0, 1, 0), float2(0, 1), c_param));
-        outStream.Append(SetGeoOut2(c_p7, float3(1, 0, 0), float2(1, 1), c_param));
+        c_n = float3(0, 0, 1);
+        outStream.Append(SetGeoOut2(c_p4, n1, c_n, float3(0, 0, 1), float2(0, 0), c_param, wire));
+        outStream.Append(SetGeoOut2(c_p5, n1, c_n, float3(1, 0, 0), float2(1, 0), c_param, wire));
+        outStream.Append(SetGeoOut2(c_p6, n2, c_n, float3(0, 1, 0), float2(0, 1), c_param, wire));
+        outStream.Append(SetGeoOut2(c_p7, n2, c_n, float3(1, 0, 0), float2(1, 1), c_param, wire));
         outStream.RestartStrip();
     }
     else
@@ -164,22 +206,48 @@ void Geometry(
         float3 t_p0 = mul(rot_m, p0 - center) * scale + center + move;
         float3 t_p1 = mul(rot_m, p1 - center) * scale + center + move;
         float3 t_p2 = mul(rot_m, p2 - center) * scale + center + move;
+        float3 normal = normalize(cross(t_p1 - t_p0, t_p2 - t_p0));
 
         // Vertex outputs
         float rnd = Random(seed + 10);
-        outStream.Append(SetGeoOut(UnityWorldToClipPos(float4(t_p0, 1)), float3(1, 0, 0), 0));
-        outStream.Append(SetGeoOut(UnityWorldToClipPos(float4(t_p1, 1)), float3(0, 1, 0), 0));
-        outStream.Append(SetGeoOut(UnityWorldToClipPos(float4(t_p2, 1)), float3(0, 0, 1), 0));
+        float wire = saturate(param * 5);
+        outStream.Append(SetGeoOut(UnityWorldToClipPos(float4(t_p0, 1)), normal, float3(1, 0, 0), wire));
+        outStream.Append(SetGeoOut(UnityWorldToClipPos(float4(t_p1, 1)), normal, float3(0, 1, 0), wire));
+        outStream.Append(SetGeoOut(UnityWorldToClipPos(float4(t_p2, 1)), normal, float3(0, 0, 1), wire));
         outStream.RestartStrip();
     }
 }
 
 // Fragment phase
-half4 Fragment(Varyings input) : SV_Target
+#ifdef VOXELIZER_SHADOW_CASTER
+
+half4 Fragment() : SV_Target { return 0; }
+
+#else
+
+void Fragment(
+    Varyings input,
+    out half4 outGBuffer0 : SV_Target0,
+    out half4 outGBuffer1 : SV_Target1,
+    out half4 outGBuffer2 : SV_Target2,
+    out half4 outEmission : SV_Target3
+)
 {
-    float3 bcc = input.texcoord.xyz;
+    float3 bcc = input.edge.xyz;
     float3 fw = abs(fwidth(bcc));
     float3 wire3 = min(smoothstep(fw / 2, fw, bcc), smoothstep(fw / 2, fw, 1 - bcc));
-    float wire = 1 - min(min(wire3.x, wire3.y), wire3.z);
-    return lerp(0.01, half4(2, 0, 0, 0), wire);
+    float wire = (1 - min(min(wire3.x, wire3.y), wire3.z)) * input.edge.w;
+
+    UnityStandardData data;
+    float sel = input.option;
+    data.diffuseColor = lerp(_Color.rgb, _Color2.rgb, sel);
+    data.occlusion = 1;
+    data.specularColor = lerp(_SpecColor, _SpecColor2, sel);
+    data.smoothness = lerp(_Glossiness, _Glossiness2, sel);
+    data.normalWorld = input.normal;
+
+    UnityStandardDataToGbuffer(data, outGBuffer0, outGBuffer1, outGBuffer2);
+    outEmission = half4(_EdgeColor * wire, 0);
 }
+
+#endif
