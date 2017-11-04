@@ -76,7 +76,7 @@ Material:
     m_Colors:
     - _Color: {r: 0, g: 0, b: 0, a: 1}
     - _Color2: {r: 0, g: 0, b: 0, a: 1}
-    - _EdgeColor: {r: 2, g: 0, b: 0, a: 1}
+    - _EdgeColor: {r: 2, g: 0.45517242, b: 0, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _SpecColor: {r: 1, g: 1, b: 1, a: 1}
     - _SpecColor2: {r: 1, g: 1, b: 1, a: 1}
