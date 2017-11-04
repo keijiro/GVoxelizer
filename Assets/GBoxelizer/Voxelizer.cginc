@@ -17,7 +17,7 @@ struct Attributes
 struct Varyings
 {
     float4 position : SV_POSITION;
-    fixed3 color : COLOR;
+    float4 texcoord : TEXCOORD;
 };
 
 // Vertex stage
@@ -35,19 +35,19 @@ float4 CubePoint(float3 v_tri, float3 pos, float3 v_cube, float3 size, float par
     return UnityWorldToClipPos(float4(p, 1));
 }
 
-Varyings SetGeoOut(float4 position, half3 normal, half3 color, half param)
+Varyings SetGeoOut(float4 pos, float3 bary, float cube)
 {
     Varyings o;
-    o.position = position;
-    o.color = lerp((normal + 1) / 2, color, param);
+    o.position = pos;
+    o.texcoord = float4(bary, cube);
     return o;
 }
 
-Varyings SetTriangleGeoOut(float3 pos, float3 normal)
+Varyings SetGeoOut2(float4 pos, float3 bary1, float2 bary2, float cube)
 {
     Varyings o;
-    o.position = UnityWorldToClipPos(float4(pos, 1));
-    o.color = (normal + 1) / 2;
+    o.position = pos;
+    o.texcoord = float4(lerp(bary1, float3(bary2, 0.5), cube), cube);
     return o;
 }
 
@@ -75,10 +75,10 @@ void Geometry(
     float param = 1 - dot(_EffectVector.xyz, center) + _EffectVector.w;
 
     // Draw nothing at the end of deformation.
-    if (param >= 1) return;
+    if (param < 0 || param >= 1) return;
 
     // Choose cube/triangle randomly.
-    if (param > 0 && Random(seed) < 0.05)
+    if (Random(seed) < 0.05)
     {
         // Random number per cube
         float rnd = Random(seed + 1);
@@ -114,46 +114,40 @@ void Geometry(
         float4 c_p7 = CubePoint(t_p2, c_p, float3(+1, +1, +1), c_size, c_param);
 
         // Output the vertices
-        half3 color = Hue2RGB(rnd);
-        outStream.Append(SetGeoOut(c_p2, n0, color, c_param));
-        outStream.Append(SetGeoOut(c_p0, n0, color, c_param));
-        outStream.Append(SetGeoOut(c_p6, n2, color, c_param));
-        outStream.Append(SetGeoOut(c_p4, n1, color, c_param));
+        outStream.Append(SetGeoOut2(c_p2, float3(0, 0, 1), float2(0, 0), c_param));
+        outStream.Append(SetGeoOut2(c_p0, float3(1, 0, 0), float2(1, 0), c_param));
+        outStream.Append(SetGeoOut2(c_p6, float3(0, 1, 0), float2(0, 1), c_param));
+        outStream.Append(SetGeoOut2(c_p4, float3(1, 0, 0), float2(1, 1), c_param));
         outStream.RestartStrip();
 
-        color = Hue2RGB(rnd + 0.1);
-        outStream.Append(SetGeoOut(c_p1, n0, color, c_param));
-        outStream.Append(SetGeoOut(c_p3, n1, color, c_param));
-        outStream.Append(SetGeoOut(c_p5, n1, color, c_param));
-        outStream.Append(SetGeoOut(c_p7, n2, color, c_param));
+        outStream.Append(SetGeoOut2(c_p1, float3(0, 0, 1), float2(0, 0), c_param));
+        outStream.Append(SetGeoOut2(c_p3, float3(1, 0, 0), float2(1, 0), c_param));
+        outStream.Append(SetGeoOut2(c_p5, float3(0, 1, 0), float2(0, 1), c_param));
+        outStream.Append(SetGeoOut2(c_p7, float3(1, 0, 0), float2(1, 1), c_param));
         outStream.RestartStrip();
 
-        color = Hue2RGB(rnd + 0.2);
-        outStream.Append(SetGeoOut(c_p0, n0, color, c_param));
-        outStream.Append(SetGeoOut(c_p1, n0, color, c_param));
-        outStream.Append(SetGeoOut(c_p4, n1, color, c_param));
-        outStream.Append(SetGeoOut(c_p5, n1, color, c_param));
+        outStream.Append(SetGeoOut2(c_p0, float3(0, 0, 1), float2(0, 0), c_param));
+        outStream.Append(SetGeoOut2(c_p1, float3(1, 0, 0), float2(1, 0), c_param));
+        outStream.Append(SetGeoOut2(c_p4, float3(0, 1, 0), float2(0, 1), c_param));
+        outStream.Append(SetGeoOut2(c_p5, float3(1, 0, 0), float2(1, 1), c_param));
         outStream.RestartStrip();
 
-        color = Hue2RGB(rnd + 0.3);
-        outStream.Append(SetGeoOut(c_p3, n1, color, c_param));
-        outStream.Append(SetGeoOut(c_p2, n0, color, c_param));
-        outStream.Append(SetGeoOut(c_p7, n2, color, c_param));
-        outStream.Append(SetGeoOut(c_p6, n2, color, c_param));
+        outStream.Append(SetGeoOut2(c_p3, float3(0, 0, 1), float2(0, 0), c_param));
+        outStream.Append(SetGeoOut2(c_p2, float3(1, 0, 0), float2(1, 0), c_param));
+        outStream.Append(SetGeoOut2(c_p7, float3(0, 1, 0), float2(0, 1), c_param));
+        outStream.Append(SetGeoOut2(c_p6, float3(1, 0, 0), float2(1, 1), c_param));
         outStream.RestartStrip();
 
-        color = Hue2RGB(rnd + 0.4);
-        outStream.Append(SetGeoOut(c_p1, n0, color, c_param));
-        outStream.Append(SetGeoOut(c_p0, n0, color, c_param));
-        outStream.Append(SetGeoOut(c_p3, n1, color, c_param));
-        outStream.Append(SetGeoOut(c_p2, n1, color, c_param));
+        outStream.Append(SetGeoOut2(c_p1, float3(0, 0, 1), float2(0, 0), c_param));
+        outStream.Append(SetGeoOut2(c_p0, float3(1, 0, 0), float2(1, 0), c_param));
+        outStream.Append(SetGeoOut2(c_p3, float3(0, 1, 0), float2(0, 1), c_param));
+        outStream.Append(SetGeoOut2(c_p2, float3(1, 0, 0), float2(1, 1), c_param));
         outStream.RestartStrip();
 
-        color = Hue2RGB(rnd + 0.5);
-        outStream.Append(SetGeoOut(c_p4, n1, color, c_param));
-        outStream.Append(SetGeoOut(c_p5, n1, color, c_param));
-        outStream.Append(SetGeoOut(c_p6, n2, color, c_param));
-        outStream.Append(SetGeoOut(c_p7, n2, color, c_param));
+        outStream.Append(SetGeoOut2(c_p4, float3(0, 0, 1), float2(0, 0), c_param));
+        outStream.Append(SetGeoOut2(c_p5, float3(1, 0, 0), float2(1, 0), c_param));
+        outStream.Append(SetGeoOut2(c_p6, float3(0, 1, 0), float2(0, 1), c_param));
+        outStream.Append(SetGeoOut2(c_p7, float3(1, 0, 0), float2(1, 1), c_param));
         outStream.RestartStrip();
     }
     else
@@ -172,9 +166,10 @@ void Geometry(
         float3 t_p2 = mul(rot_m, p2 - center) * scale + center + move;
 
         // Vertex outputs
-        outStream.Append(SetTriangleGeoOut(t_p0, n0));
-        outStream.Append(SetTriangleGeoOut(t_p1, n1));
-        outStream.Append(SetTriangleGeoOut(t_p2, n2));
+        float rnd = Random(seed + 10);
+        outStream.Append(SetGeoOut(UnityWorldToClipPos(float4(t_p0, 1)), float3(1, 0, 0), 0));
+        outStream.Append(SetGeoOut(UnityWorldToClipPos(float4(t_p1, 1)), float3(0, 1, 0), 0));
+        outStream.Append(SetGeoOut(UnityWorldToClipPos(float4(t_p2, 1)), float3(0, 0, 1), 0));
         outStream.RestartStrip();
     }
 }
@@ -182,5 +177,9 @@ void Geometry(
 // Fragment phase
 half4 Fragment(Varyings input) : SV_Target
 {
-    return half4(input.color, 1);
+    float3 bcc = input.texcoord.xyz;
+    float3 fw = abs(fwidth(bcc));
+    float3 wire3 = min(smoothstep(fw / 2, fw, bcc), smoothstep(fw / 2, fw, 1 - bcc));
+    float wire = 1 - min(min(wire3.x, wire3.y), wire3.z);
+    return lerp(0.01, half4(2, 0, 0, 0), wire);
 }

@@ -1,4 +1,4 @@
-﻿Shader "Voxelizer"
+﻿Shader "Voxelizer Effects"
 {
     Properties
     {
