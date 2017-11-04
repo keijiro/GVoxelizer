@@ -100,6 +100,7 @@ void Geometry(
         c_size *= 0.05 * saturate(1 + snoise.w * 2);
 
         float3 c_p = center + snoise.xyz * 0.02;
+        c_p.y += c_anim * Random(seed + 2);
 
         // Vertices (with triangle -> cube defromation)
         float c_param = smoothstep(0.25, 0.5, param);
