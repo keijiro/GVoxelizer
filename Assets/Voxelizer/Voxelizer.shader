@@ -18,7 +18,6 @@
     SubShader
     {
         Tags { "RenderType"="Opaque" }
-        Cull Off
         Pass
         {
             Tags { "LightMode"="Deferred" }
