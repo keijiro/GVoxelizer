@@ -33,7 +33,8 @@ class Voxelizer : MonoBehaviour
 
         _sheet.SetVector("_EffectVector", vector);
 
-        foreach (var r in _linkedRenderers) r.SetPropertyBlock(_sheet);
+        if (_linkedRenderers != null)
+            foreach (var r in _linkedRenderers) r.SetPropertyBlock(_sheet);
     }
 
     #if UNITY_EDITOR

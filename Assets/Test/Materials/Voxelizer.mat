@@ -63,7 +63,8 @@ Material:
     - _Glossiness: 0.65
     - _Glossiness2: 0.8
     - _GlossyReflections: 1
-    - _Metallic: 0
+    - _Metallic: 1
+    - _Metallic2: 1
     - _Mode: 0
     - _OcclusionStrength: 1
     - _Parallax: 0.02
@@ -74,8 +75,8 @@ Material:
     - _Voxelize: 0
     - _ZWrite: 1
     m_Colors:
-    - _Color: {r: 0, g: 0, b: 0, a: 1}
-    - _Color2: {r: 0, g: 0, b: 0, a: 1}
+    - _Color: {r: 1, g: 1, b: 1, a: 1}
+    - _Color2: {r: 1, g: 1, b: 1, a: 1}
     - _EdgeColor: {r: 2, g: 0.45517242, b: 0, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _SpecColor: {r: 1, g: 1, b: 1, a: 1}
